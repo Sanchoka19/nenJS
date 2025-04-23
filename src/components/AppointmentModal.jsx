@@ -1,7 +1,4 @@
 import { useState, useEffect } from 'react';
-import Flatpickr from 'react-flatpickr';
-import 'flatpickr/dist/flatpickr.css';
-import { Georgian } from 'flatpickr/dist/l10n/ka.js';
 import { specialistData } from '../data/specialists';
 
 function AppointmentModal({ mode, appointment, onClose }) {
@@ -42,22 +39,20 @@ function AppointmentModal({ mode, appointment, onClose }) {
     }));
   };
 
-  const handleDateChange = (dates) => {
-    if (dates.length > 0) {
-      const startTime = dates[0];
-      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Add 1 hour
-      
-      setFormData(prev => ({
-        ...prev,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString()
-      }));
-    }
+  const handleDateTimeChange = (e) => {
+    const startTime = e.target.value;
+    const endTime = new Date(new Date(startTime).getTime() + 60 * 60 * 1000).toISOString().slice(0, 16);
+    
+    setFormData(prev => ({
+      ...prev,
+      startTime,
+      endTime
+    }));
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[100]">
+      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl relative">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">
             {mode === 'create' ? 'ახალი ჯავშნის დამატება' : 'ჯავშნის რედაქტირება'}
@@ -138,19 +133,16 @@ function AppointmentModal({ mode, appointment, onClose }) {
           )}
 
           <div className="bg-gray-50 rounded-lg p-4">
-            <label htmlFor="datetime" className="block text-sm font-medium text-gray-500 mb-1">თარიღი და დრო</label>
-            <Flatpickr
-              id="datetime"
+            <label htmlFor="startTime" className="block text-sm font-medium text-gray-500 mb-1">თარიღი და დრო</label>
+            <input
+              type="datetime-local"
+              id="startTime"
+              name="startTime"
               value={formData.startTime}
-              onChange={handleDateChange}
-              options={{
-                locale: Georgian,
-                enableTime: true,
-                dateFormat: 'Y-m-d H:i',
-                time_24hr: true,
-                minDate: 'today'
-              }}
+              onChange={handleDateTimeChange}
+              min={new Date().toISOString().slice(0, 16)}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
+              required
             />
           </div>
 
