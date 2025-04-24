@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useCallback, memo } from 'react';
 
 const HomeIcon = () => (
     <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-3">
@@ -59,21 +60,39 @@ const HomeIcon = () => (
     { icon: <PaymentIcon />, text: 'კლიენტები', path: '/' },
   ];
 
-function Sidebar({ isOpen, setIsOpen }) {
+const MenuItem = memo(({ item, onClose }) => (
+  <Link
+    to={item.path}
+    className={`flex items-center ${
+      item.className || 
+      'text-gray-600 hover:bg-gray-200 hover:bg-gray-200 transition-colors duration-200 rounded-lg p-[10px_0px_10px_15px]'
+    }`}
+    onClick={onClose}
+  >
+    {item.icon}
+    {item.text}
+  </Link>
+));
+
+function Sidebar({ isOpen, setIsOpen, className = '' }) {
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, [setIsOpen]);
+
   return (
     <>
       {/* Overlay for mobile */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
-          onClick={() => setIsOpen(false)}
+          onClick={handleClose}
         />
       )}
       
       {/* Sidebar */}
       <aside className={`
         fixed top-0 left-0 h-screen w-64 bg-white shadow-md z-30
-        transform transition-transform duration-300 ease-in-out
+        ${className}
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:sticky lg:top-0
       `}>
@@ -81,18 +100,11 @@ function Sidebar({ isOpen, setIsOpen }) {
           <div className="text-xl font-bold text-gray-800 mb-8">Nexaro CRM</div>
           <nav className="space-y-1 flex-grow">
             {menuItems.map((item, index) => (
-              <Link
+              <MenuItem 
                 key={index}
-                to={item.path}
-                className={`flex items-center ${
-                  item.className || 
-                  'text-gray-600 hover:bg-gray-200 hover:bg-gray-200 transition-colors duration-200 rounded-lg p-[10px_0px_10px_15px]'
-                }`}
-                onClick={() => setIsOpen(false)}
-              >
-                {item.icon}
-                {item.text}
-              </Link>
+                item={item}
+                onClose={handleClose}
+              />
             ))}
           </nav>
           <div className="text-sm text-gray-500">
@@ -104,4 +116,4 @@ function Sidebar({ isOpen, setIsOpen }) {
   );
 }
 
-export default Sidebar; 
+export default memo(Sidebar); 

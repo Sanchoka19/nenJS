@@ -1,10 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import MetricsChart from './MetricsChart';
 import Calendar from './Calendar';
 import TodayAppointments from './TodayAppointments';
 import QuickActions from './QuickActions';
 import Notifications from './Notifications';
 import AppointmentModal from './AppointmentModal';
+
+const MetricCard = memo(({ card }) => (
+  <div className="responsive-card">
+    <p className={`text-2xl sm:text-3xl font-bold ${card.color}`}>{card.value}</p>
+    <p className="text-xs sm:text-sm text-gray-500">{card.label}</p>
+  </div>
+));
 
 function Dashboard({ onEditAppointment }) {
   const [metrics, setMetrics] = useState({
@@ -18,16 +25,16 @@ function Dashboard({ onEditAppointment }) {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [appointments, setAppointments] = useState([]);
 
-  const handleOpenModal = (mode, appointment = null) => {
+  const handleOpenModal = useCallback((mode, appointment = null) => {
     setModalMode(mode);
     setSelectedAppointment(appointment);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleCloseModal = (formData) => {
+  const handleCloseModal = useCallback((formData) => {
     if (formData) {
       const newAppointment = {
-        id: Date.now(), // Generate a unique ID
+        id: Date.now(),
         ...formData,
         createdAt: new Date().toISOString()
       };
@@ -44,11 +51,11 @@ function Dashboard({ onEditAppointment }) {
     }
     setIsModalOpen(false);
     setSelectedAppointment(null);
-  };
+  }, [modalMode, selectedAppointment]);
 
-  const handleDeleteAppointment = (appointmentId) => {
+  const handleDeleteAppointment = useCallback((appointmentId) => {
     setAppointments(prev => prev.filter(app => app.id !== appointmentId));
-  };
+  }, []);
 
   // Filter appointments for today
   const todayAppointments = useMemo(() => {
@@ -81,7 +88,6 @@ function Dashboard({ onEditAppointment }) {
              appointment.status !== 'გაუქმებული';
     });
 
-    // Calculate income (assuming each service has a fixed price for now)
     const servicePrices = {
       'თმის შეჭრა': 30,
       'თმის დავარცხნა': 20,
@@ -103,32 +109,7 @@ function Dashboard({ onEditAppointment }) {
     });
   }, [appointments]);
 
-  // Reset metrics every 24 hours
-  useEffect(() => {
-    const resetMetrics = () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      const timeUntilReset = tomorrow.getTime() - new Date().getTime();
-      
-      const timer = setTimeout(() => {
-        setMetrics(prev => ({
-          ...prev,
-          visits: 0,
-          todayIncome: 0
-        }));
-      }, timeUntilReset);
-
-      return () => clearTimeout(timer);
-    };
-
-    const timer = resetMetrics();
-    return () => clearTimeout(timer);
-  }, []);
-
-  // ✅ Optionally memoize visual metric cards (if they ever cause re-renders)
+  // Memoize metric cards
   const metricCards = useMemo(() => [
     {
       value: metrics.visits,
@@ -148,24 +129,19 @@ function Dashboard({ onEditAppointment }) {
   ], [metrics]);
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div className="p-4 sm:p-6">
+      <h1 className="text-2xl font-semibold text-gray-800 mb-6">მართვის პანელი</h1>
+      <div className="responsive-grid mb-6">
         {metricCards.map((card, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center justify-center"
-          >
-            <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
-            <p className="text-sm text-gray-500">{card.label}</p>
-          </div>
+          <MetricCard key={index} card={card} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="responsive-grid">
         <div className="lg:col-span-2">
           <TodayAppointments 
             appointments={todayAppointments}
-            onEditAppointment={(appointment) => handleOpenModal('edit', appointment)}
+            onEditAppointment={handleOpenModal}
             onDeleteAppointment={handleDeleteAppointment}
           />
         </div>
@@ -177,22 +153,21 @@ function Dashboard({ onEditAppointment }) {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         <MetricsChart />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         <Calendar 
           appointments={appointments}
-          onEditAppointment={(appointment) => handleOpenModal('edit', appointment)}
+          onEditAppointment={handleOpenModal}
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         <Notifications />
       </div>
 
-      {/* Appointment Modal */}
       {isModalOpen && (
         <AppointmentModal
           mode={modalMode}
@@ -204,4 +179,4 @@ function Dashboard({ onEditAppointment }) {
   );
 }
 
-export default Dashboard;
+export default memo(Dashboard);

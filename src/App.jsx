@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -10,19 +10,43 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen(prev => !prev);
+  }, []);
 
-  const openModal = (mode, appointment = null) => {
+  const openModal = useCallback((mode, appointment = null) => {
     setModalMode(mode);
     setSelectedAppointment(appointment);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedAppointment(null);
-  };
+  }, []);
+
+  useEffect(() => {
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setWindowWidth(window.innerWidth);
+        if (window.innerWidth >= 1024 && !isSidebarOpen) {
+          setIsSidebarOpen(true);
+        } else if (window.innerWidth < 1024 && isSidebarOpen) {
+          setIsSidebarOpen(false);
+        }
+      }, 100);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, [isSidebarOpen]);
 
   const dashboardPaths = [
     '/',
@@ -37,36 +61,44 @@ function App() {
 
   return (
     <Router>
-      <div className="flex min-h-screen">
-        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-
-        <div className="flex-1">
-          <Header 
-            onMenuClick={toggleSidebar} 
-            onNewAppointment={() => openModal('create')} 
+      <div className="layout-container">
+        <div className="flex h-screen overflow-hidden">
+          <Sidebar 
+            isOpen={isSidebarOpen} 
+            setIsOpen={setIsSidebarOpen}
+            className="sidebar-transition"
           />
 
-          <Routes>
-            {dashboardPaths.map((path) => (
-              <Route 
-                key={path} 
-                path={path} 
-                element={
-                  <Dashboard 
-                    onEditAppointment={(appointment) => openModal('edit', appointment)} 
-                  />
-                } 
-              />
-            ))}
-          </Routes>
-
-          {isModalOpen && (
-            <AppointmentModal
-              mode={modalMode}
-              appointment={selectedAppointment}
-              onClose={closeModal}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Header 
+              onMenuClick={toggleSidebar} 
+              onNewAppointment={() => openModal('create')} 
             />
-          )}
+
+            <main className="flex-1 overflow-y-auto">
+              <Routes>
+                {dashboardPaths.map((path) => (
+                  <Route 
+                    key={path} 
+                    path={path} 
+                    element={
+                      <Dashboard 
+                        onEditAppointment={(appointment) => openModal('edit', appointment)} 
+                      />
+                    } 
+                  />
+                ))}
+              </Routes>
+            </main>
+
+            {isModalOpen && (
+              <AppointmentModal
+                mode={modalMode}
+                appointment={selectedAppointment}
+                onClose={closeModal}
+              />
+            )}
+          </div>
         </div>
       </div>
     </Router>
